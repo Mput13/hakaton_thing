@@ -3,10 +3,10 @@ import logging
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.errors import ObjectNotExists
-from models import User
-from schemas.user import UserInit, UserShort, UserAbout
-from utils.utils import to_snake
+from bot.core.errors import ObjectNotExists
+from bot.models.users import User
+from bot.schemas.user import UserInit, UserShort, UserAbout
+from bot.utils.utils import to_snake
 
 
 class UserRepository:
@@ -29,7 +29,7 @@ class UserRepository:
 
         return UserShort.model_validate(user)
 
-    async def get_user_by_chat_id(self, session: AsyncSession, chat_id: int) -> UserShort | None:
+    async def get_user_by_chat_id(self, session: AsyncSession, chat_id: int):
         self.logger.debug(f'fetching user with chat_id: {chat_id}')
         fetched = await session.scalar(select(User).where(User.chat_id == chat_id))
         if not fetched:
@@ -39,7 +39,7 @@ class UserRepository:
         self.logger.info(f'found by chat_id: {chat_id} - {obj}')
         return obj
 
-    async def get_user_by_id(self, session: AsyncSession, user_id: int) -> UserShort | None:
+    async def get_user_by_id(self, session: AsyncSession, user_id: int):
         self.logger.debug(f'fetching user with id: {user_id}')
         fetched = await session.get(User, user_id)
         if not fetched:

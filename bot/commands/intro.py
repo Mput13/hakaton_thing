@@ -8,14 +8,13 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from core.constants import UserRoleTranslation
-from core.simple_dialog_handler import SimpleDialog, DialogContextStep, RetryError, ExitHandler
-from core.text import dialogs
-from repositories.user_repository import user_repository
-from schemas.user import UserInit, UserAbout
-from services.account_service import account_service
-from services.statistic_service import statistic_service
-from utils.database import db_async_session_manager
+from bot.core.constants import UserRoleTranslation
+from bot.core.simple_dialog_handler import DialogContextStep, RetryError, ExitHandler, SimpleDialog
+from bot.core.text import dialogs
+from bot.models import db_session
+from bot.repositories.user_repository import user_repository
+from bot.schemas.user import UserInit, UserAbout
+from bot.services.account_service import account_service
 
 intro_router = Router(name='intro')
 intro_dialogs = dialogs['intro']
@@ -38,7 +37,7 @@ class IntroAction(CallbackData, prefix='intr'):
 @intro_router.message(Command('start'))
 async def start(message: Message, state: FSMContext):
     # сессия к БД также должна проходить через DI и передаваться в параметры функции, но встроенный DI у aiogram также плох
-    async with db_async_session_manager() as session:
+    async with db_session.create_session() as session:
         await account_service.register_account(
             session, UserInit(
                 chat_id=message.from_user.id,
@@ -48,16 +47,11 @@ async def start(message: Message, state: FSMContext):
             )
         )
 
-        stat = await statistic_service.active_statistic(session)
-
         await message.answer(intro_dialogs['start']['hello'])
         builder = InlineKeyboardBuilder()
         builder.button(text=intro_dialogs['start']['confirm_button'], callback_data=IntroAction(action='confirm'))
         await message.answer(
-            intro_dialogs['start']['usage_statistic'].format(
-                active_users=stat.active_users,
-                active_commands=stat.active_commands
-            ),
+            intro_dialogs['start']['usage_statistic'],
 
             reply_markup=builder.as_markup()
 
@@ -84,7 +78,7 @@ class ExitAbout(ExitHandler):
     async def handle(self, message: Message, state: FSMContext):
         collected_data = await self.dialog.collect_dialog_data(state)
 
-        async with db_async_session_manager() as session:
+        async with db_session.create_session() as session:
             await account_service.fill_about(
                 session, message.from_user.id, UserAbout(
                     **collected_data
@@ -99,7 +93,8 @@ about_info_dialog = SimpleDialog(
     name='about_collect', router=intro_router, steps=[
         DialogContextStep(
             state=FillAboutForm.about,
-            text=intro_dialogs['about_info']
+            text=intro_dialogs['about_info'],
+            buttons=list(UserRoleTranslation.values())
         ),
         CollectRole(
             state=FillAboutForm.role,
@@ -108,7 +103,8 @@ about_info_dialog = SimpleDialog(
         ),
         DialogContextStep(
             state=FillAboutForm.target,
-            text=intro_dialogs['target']
+            text=intro_dialogs['target'],
+            buttons=list(UserRoleTranslation.values())
         ),
     ],
     on_exit=ExitAbout()
@@ -118,7 +114,7 @@ about_info_dialog = SimpleDialog(
 @intro_router.message(Command('my-profile'))
 async def my_profile(message: Message, state: FSMContext):
     # на чтение можно ходить и напрямую в репо
-    async with db_async_session_manager() as session:
+    async with db_session.create_session() as session:
         user = await user_repository.get_user_by_chat_id(session, message.chat.id)
     about_info = user.about
 

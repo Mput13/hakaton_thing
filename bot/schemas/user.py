@@ -1,12 +1,12 @@
-from core.constants import UserRole
-from schemas.core import Model, IdMixin
+from bot.core.constants import UserRole
+from bot.schemas.core import Model, IdMixin
 
 
 class UserInit(Model):
     chat_id: int
     login: str
-    name: str | None
-    surname: str | None
+    name: str
+    surname: str
 
 
 class UserAbout(Model):
@@ -16,4 +16,4 @@ class UserAbout(Model):
 
 
 class UserShort(UserInit, IdMixin):
-    about: UserAbout | None
+    about: UserAbout

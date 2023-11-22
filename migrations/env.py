@@ -19,8 +19,7 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 app_path = pathlib.Path(__file__).parent.parent / 'bot/'
-sys.path.insert(0, str(app_path.resolve()))
-from models import Base  # импорт должен быть ровно таким, после sys.path и именно из `models`
+sys.path.insert(0, str(app_path.resolve()))  # импорт должен быть ровно таким, после sys.path и именно из `models`
 
 target_metadata = Base.metadata
 

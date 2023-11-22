@@ -12,14 +12,13 @@ frozenlist==1.4.0
 idna==3.4
 magic-filter==1.0.12
 multidict==6.0.4
-pydantic==2.3.0
-pydantic_core==2.6.3
 SQLAlchemy==2.0.23
 typing_extensions==4.7.1
 yarl==1.9.2
-pydantic-settings==2.1.0
 python-dotenv==1.0.0
 alembic==1.12.1
 greenlet==3.0.1
 psycopg2-binary>=2.8.5; sys_platform == "linux" or sys_platform == "darwin"
 psycopg2>=2.8.5; sys_platform == "win32"
+
+pydantic~=2.3.0

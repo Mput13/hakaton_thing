@@ -43,7 +43,7 @@ class ExitHandler(HandlerMixin, DialogEntityMixin):
 
 
 class DialogStep(DialogEntityMixin, abc.ABC):
-    def __init__(self, state: State, text: str, buttons: list[str] = None):
+    def __init__(self, state: State, text: str, buttons):
 
         self.buttons = buttons
         self.text = text
@@ -90,7 +90,7 @@ class DialogContextStep(DialogStep):
 
 
 class SimpleDialog:
-    def __init__(self, name: str, router: Router, steps: list[DialogStep], on_exit: ExitHandler):
+    def __init__(self, name: str, router: Router, steps, on_exit):
         if '-' in name:
             raise ValueError('dialog name can not containt "-" sign')
         self.on_exit = on_exit
@@ -159,7 +159,7 @@ class SimpleDialog:
     async def _save_dialog_data(self, key: str, value: Any, state: FSMContext):
         await state.update_data(**{self._build_dialog_data_key(key): value})
 
-    async def collect_dialog_data(self, state: FSMContext) -> dict[StateName, Any]:
+    async def collect_dialog_data(self, state: FSMContext):
         """
         Получает все введённые пользователем данные в формате {названиеШага: текст пользователя}
         """
@@ -168,14 +168,14 @@ class SimpleDialog:
 
         return cleared
 
-    def _next_step(self, step: DialogStep) -> DialogStep | None:
+    def _next_step(self, step: DialogStep):
         next_step = self._steps.index(step) + 1
         try:
             return self._steps[next_step]
         except IndexError:
             return None
 
-    async def start_dialog(self, message: Message | CallbackQuery, state: FSMContext, bot: Bot):
+    async def start_dialog(self, message, state: FSMContext, bot: Bot):
         first_step = self._steps[0]
 
         await bot.send_message(message.from_user.id, first_step.text)

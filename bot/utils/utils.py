@@ -3,7 +3,7 @@ import re
 from typing import Literal
 
 
-def setup_logging(level: Literal['DEBUG', 'INFO', 'ERROR', 'WARNING'] = 'DEBUG'):
+def setup_logging(level):
     while len(logging.root.handlers) > 0:
         logging.root.removeHandler(logging.root.handlers[-1])
 

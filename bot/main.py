@@ -1,4 +1,5 @@
 import asyncio
+import configparser
 import logging
 
 from aiogram import Bot
@@ -6,17 +7,24 @@ from aiogram.enums import ParseMode
 from aiogram.utils.callback_answer import CallbackAnswerMiddleware
 
 from app import dp
+from bot.models import db_session
 from commands.intro import intro_router
-from core.config import config
-from utils.utils import setup_logging
 
-logger = logging.getLogger('startup')
+logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    logger.info('Starting the bot')
-    setup_logging(level=config.log_level)
-    bot = Bot(config.bot_token, parse_mode=ParseMode.HTML)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    )
+    logger.info("Starting bot")
+
+    parser = configparser.ConfigParser()
+    # Парсинг файла конфигурации
+    parser.read("config/bot.ini")
+    db_session.global_init("db/nigas.db")
+    bot = Bot(parser.get('TG_BOT', 'token'), parse_mode=ParseMode.HTML)
     dp.include_routers(
         intro_router
     )
