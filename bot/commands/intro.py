@@ -12,8 +12,6 @@ from bot.core.constants import UserRoleTranslation
 from bot.core.simple_dialog_handler import DialogContextStep, RetryError, ExitHandler, SimpleDialog
 from bot.core.text import dialogs
 from bot.models import db_session
-from bot.repositories.user_repository import user_repository
-from bot.schemas.user import UserInit, UserAbout
 from bot.services.account_service import account_service
 
 intro_router = Router(name='intro')
@@ -37,15 +35,16 @@ class IntroAction(CallbackData, prefix='intr'):
 @intro_router.message(Command('start'))
 async def start(message: Message, state: FSMContext):
     # сессия к БД также должна проходить через DI и передаваться в параметры функции, но встроенный DI у aiogram также плох
-    async with db_session.create_session() as session:
-        await account_service.register_account(
-            session, UserInit(
-                chat_id=message.from_user.id,
-                login=message.from_user.username,
-                name=message.from_user.first_name,
-                surname=message.from_user.last_name,
-            )
-        )
+    with db_session.create_session() as session:
+        pass
+        # await account_service.register_account(
+        #     session, UserInit(
+        #         chat_id=message.from_user.id,
+        #         login=message.from_user.username,
+        #         name=message.from_user.first_name,
+        #         surname=message.from_user.last_name,
+        #     )
+        # )
 
         await message.answer(intro_dialogs['start']['hello'])
         builder = InlineKeyboardBuilder()
@@ -78,12 +77,13 @@ class ExitAbout(ExitHandler):
     async def handle(self, message: Message, state: FSMContext):
         collected_data = await self.dialog.collect_dialog_data(state)
 
-        async with db_session.create_session() as session:
-            await account_service.fill_about(
-                session, message.from_user.id, UserAbout(
-                    **collected_data
-                )
-            )
+        with db_session.create_session() as session:
+            pass
+            # await account_service.fill_about(
+            #     session, message.from_user.id, UserAbout(
+            #         **collected_data
+            #     )
+            # )
 
         await state.clear()
         await message.answer(intro_dialogs['complete'])
@@ -114,9 +114,10 @@ about_info_dialog = SimpleDialog(
 @intro_router.message(Command('my-profile'))
 async def my_profile(message: Message, state: FSMContext):
     # на чтение можно ходить и напрямую в репо
-    async with db_session.create_session() as session:
-        user = await user_repository.get_user_by_chat_id(session, message.chat.id)
-    about_info = user.about
+    with db_session.create_session() as session:
+        pass
+    #     user = await user_repository.get_user_by_chat_id(session, message.chat.id)
+    # about_info = user.about
 
     await message.answer(
         intro_dialogs['profile_info'].format(about=about_info.about, role=about_info.role, target=about_info.target)
