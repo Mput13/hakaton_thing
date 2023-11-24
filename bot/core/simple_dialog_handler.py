@@ -1,10 +1,10 @@
 import abc
 from typing import Any
 
-from aiogram import Router, Bot
+from aiogram import Router, Bot, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, CallbackQuery
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 
 class DialogError(Exception):
@@ -43,7 +43,7 @@ class ExitHandler(HandlerMixin, DialogEntityMixin):
 
 
 class DialogStep(DialogEntityMixin, abc.ABC):
-    def __init__(self, state: State, text: str, buttons):
+    def __init__(self, state: State, text: str, buttons=None):
 
         self.buttons = buttons
         self.text = text
@@ -81,7 +81,7 @@ class DialogContextStep(DialogStep):
 
         await state.update_data(**{key: user_data})
 
-    async def validate_user_data(self, message: Message, state: FSMContext)->Any:
+    async def validate_user_data(self, message: Message, state: FSMContext) -> Any:
         """
 
         :raises DialogError: при некорректных данных от пользователя
@@ -118,16 +118,11 @@ class SimpleDialog:
                         next_step = self._next_step(step)
 
                         if next_step:
-                            if next_step.buttons:
-                                keyboard = ReplyKeyboardMarkup(
-                                    keyboard=[[KeyboardButton(text=i) for i in next_step.buttons]],
-                                    one_time_keyboard=True,
-                                    resize_keyboard=True
-                                )
-                            else:
-                                keyboard = ReplyKeyboardRemove()
+                            if not next_step.buttons:
+                                next_step.buttons = types.ReplyKeyboardRemove()
 
-                            await message.answer(next_step.text, reply_markup=keyboard)
+                            await message.answer(next_step.text, reply_markup=next_step.buttons)
+
 
                             await state.set_state(next_step.state)
                         else:

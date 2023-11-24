@@ -1,6 +1,6 @@
 import enum
 
-from aiogram import Router, F, Bot
+from aiogram import Router, F, Bot, types
 from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
@@ -8,11 +8,9 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.core.constants import UserRoleTranslation
 from bot.core.simple_dialog_handler import DialogContextStep, RetryError, ExitHandler, SimpleDialog
 from bot.core.text import dialogs
 from bot.models import db_session
-from bot.services.account_service import account_service
 
 intro_router = Router(name='intro')
 intro_dialogs = dialogs['intro']
@@ -25,7 +23,7 @@ class FillAboutForm(StatesGroup):
 
 
 class IntroActionKinds(str, enum.Enum):
-    confirm = 'confirm'
+    articles = 'articles'
 
 
 class IntroAction(CallbackData, prefix='intr'):
@@ -48,7 +46,7 @@ async def start(message: Message, state: FSMContext):
 
         await message.answer(intro_dialogs['start']['hello'])
         builder = InlineKeyboardBuilder()
-        builder.button(text=intro_dialogs['start']['confirm_button'], callback_data=IntroAction(action='confirm'))
+        builder.button(text=intro_dialogs['start']['articles_button'], callback_data=IntroAction(action='articles'))
         await message.answer(
             intro_dialogs['start']['usage_statistic'],
 
@@ -57,23 +55,44 @@ async def start(message: Message, state: FSMContext):
         )
 
 
-@intro_router.callback_query(IntroAction.filter(F.action == IntroActionKinds.confirm))
+@intro_router.callback_query(IntroAction.filter(F.action == IntroActionKinds.articles))
 async def about_info(query: CallbackQuery, state: FSMContext, bot: Bot):
-    await about_info_dialog.start_dialog(query, state, bot)
-
-
-class CollectRole(DialogContextStep):
-    reversed_translations = {v: k for k, v in UserRoleTranslation.items()}
+    await articles_dialog.start_dialog(query, state, bot)
+    articles = [[types.KeyboardButton(text="Тут будет ваша статья 1")],
+                [types.KeyboardButton(text="Тут будет ваша статья 2")],
+                [types.KeyboardButton(text="Тут будет ваша статья 3")],
+                [types.KeyboardButton(text="Тут будет ваша статья 4")]]
+    jsoned_dict = {"Тут будет ваша статья 1": "aboba", "Тут будет ваша статья 2": "aboba",
+                   "Тут будет ваша статья 3": "aboba",
+                   "Тут будет ваша статья 4": "aboba"}
+    keyboard = types.ReplyKeyboardMarkup(keyboard=articles)
+    await query.message.answer("Выбирите статью", reply_markup=keyboard)
 
     async def validate_user_data(self, message: Message, state: FSMContext):
-        possible_values = set(UserRoleTranslation.values())
+        if message.text not in articles:
+            raise RetryError(f'Недопустимое значение: {message.text}')
+
+        return jsoned_dict[message.text]
+
+
+class CollectArticle(DialogContextStep):
+    jsoned_dict = {"Тут будет ваша статья 1": "aboba", "Тут будет ваша статья 2": "aboba",
+                   "Тут будет ваша статья 3": "aboba",
+                   "Тут будет ваша статья 4": "aboba"}
+
+    async def validate_user_data(self, message: Message, state: FSMContext):
+        possible_values = ["Тут будет ваша статья 1",
+                           "Тут будет ваша статья 2",
+                           "Тут будет ваша статья 3",
+                           "Тут будет ваша статья 4"]
 
         if message.text not in possible_values:
             raise RetryError(f'Недопустимое значение: {message.text}')
-        return self.reversed_translations[message.text]
+        await message.answer(self.jsoned_dict[message.text], reply_markup=types.ReplyKeyboardRemove())
+        return self.jsoned_dict[message.text]
 
 
-class ExitAbout(ExitHandler):
+class ExitArticle(ExitHandler):
     async def handle(self, message: Message, state: FSMContext):
         collected_data = await self.dialog.collect_dialog_data(state)
 
@@ -86,28 +105,31 @@ class ExitAbout(ExitHandler):
             # )
 
         await state.clear()
-        await message.answer(intro_dialogs['complete'])
 
 
-about_info_dialog = SimpleDialog(
-    name='about_collect', router=intro_router, steps=[
+articles_dialog = SimpleDialog(
+    name='article_collect', router=intro_router, steps=[
         DialogContextStep(
             state=FillAboutForm.about,
-            text=intro_dialogs['about_info'],
-            buttons=list(UserRoleTranslation.values())
+            text=intro_dialogs['choose_article'],
+            buttons=None
         ),
-        CollectRole(
+        CollectArticle(
             state=FillAboutForm.role,
             text=intro_dialogs['roles'],
-            buttons=list(UserRoleTranslation.values())
+            buttons=[[types.KeyboardButton(text="Тут будет ваша статья 1")],
+                     [types.KeyboardButton(text="Тут будет ваша статья 2")],
+                     [types.KeyboardButton(text="Тут будет ваша статья 3")],
+                     [types.KeyboardButton(text="Тут будет ваша статья 4")]]
         ),
         DialogContextStep(
+
             state=FillAboutForm.target,
             text=intro_dialogs['target'],
-            buttons=list(UserRoleTranslation.values())
+            buttons=None
         ),
     ],
-    on_exit=ExitAbout()
+    on_exit=ExitArticle()
 )
 
 

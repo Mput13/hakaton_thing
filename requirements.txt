@@ -20,5 +20,3 @@ alembic==1.12.1
 greenlet==3.0.1
 psycopg2-binary>=2.8.5; sys_platform == "linux" or sys_platform == "darwin"
 psycopg2>=2.8.5; sys_platform == "win32"
-
-pydantic~=2.3.0
